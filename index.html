@@ -3,497 +3,867 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>محاكي الثقب الأسود السينمائي | Black Hole Shader</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+    <title>Gargantua — محاكي الثقب الأسود النسبوي</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
-        body, html {
+        html, body {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #000;
+            background-color: #000;
             font-family: 'Tajawal', sans-serif;
             color: #fff;
         }
 
-        #glcanvas {
-            position: absolute;
+        canvas {
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             display: block;
+            z-index: 1;
             touch-action: none;
         }
 
-        /* زر إخفاء/إظهار الواجهة المخصص للهاتف */
-        .toggle-hud-btn {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            z-index: 50;
-            background: rgba(15, 20, 30, 0.7);
-            border: 1px solid rgba(255, 140, 0, 0.4);
-            color: #ff9900;
+        /* Toggle Button */
+        #ui-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 20;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
-            width: 44px;
-            height: 44px;
+            background: rgba(15, 12, 10, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 170, 90, 0.3);
+            color: #ffbe76;
+            font-size: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            backdrop-filter: blur(8px);
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
         }
 
-        /* العنوان العلوي المصغر */
-        header {
-            position: absolute;
-            top: 1rem;
-            right: 1.2rem;
-            z-index: 10;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        header h1 {
-            font-size: 1.15rem;
-            font-weight: 900;
-            background: linear-gradient(90deg, #ffb300, #ff4400, #fff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        header p {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.6);
+        #ui-toggle:hover, #ui-toggle:active {
+            transform: scale(1.08) rotate(35deg);
+            background: rgba(35, 22, 12, 0.85);
+            border-color: rgba(255, 170, 90, 0.7);
         }
 
-        /* لوحة التحكم المصغرة جداً والمناسبة للجوال */
-        .hud-panel {
-            position: absolute;
-            bottom: 1.2rem;
+        /* Floating HUD */
+        #hud {
+            position: fixed;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            width: calc(100% - 2.4rem);
-            max-width: 420px;
-            background: rgba(10, 14, 22, 0.75);
-            border: 1px solid rgba(255, 140, 0, 0.25);
-            border-radius: 18px;
+            z-index: 10;
+            width: min(92vw, 480px);
+            background: rgba(10, 8, 12, 0.6);
             backdrop-filter: blur(16px);
-            padding: 0.85rem 1.1rem;
-            z-index: 20;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 165, 80, 0.22);
+            border-radius: 20px;
+            padding: 14px 20px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .hud-panel.hidden {
-            transform: translate(-50%, 150%);
+        #hud.hidden {
             opacity: 0;
             pointer-events: none;
+            transform: translateX(-50%) translateY(30px) scale(0.96);
         }
 
-        .hud-row {
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .hud-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffcf96;
+            letter-spacing: 0.3px;
             display: flex;
             align-items: center;
+            gap: 6px;
+        }
+
+        .hud-title span.dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff9f43;
+            box-shadow: 0 0 8px #ff9f43;
+            display: inline-block;
+        }
+
+        .hud-hint {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-label {
+            display: flex;
             justify-content: space-between;
-            margin-bottom: 0.5rem;
-            gap: 0.8rem;
-        }
-
-        .hud-label {
             font-size: 0.8rem;
-            color: #d1d5db;
-            white-space: nowrap;
+            color: rgba(255, 240, 225, 0.85);
+            font-weight: 500;
         }
 
-        .hud-slider {
-            flex-grow: 1;
+        .control-value {
+            color: #ffae52;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        input[type="range"] {
             -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
             height: 5px;
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.14);
             border-radius: 4px;
             outline: none;
+            cursor: pointer;
         }
-        .hud-slider::-webkit-slider-thumb {
+
+        input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
+            appearance: none;
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #ff7700;
-            box-shadow: 0 0 10px #ff7700;
+            background: #ffae52;
+            box-shadow: 0 0 10px rgba(255, 160, 60, 0.85);
+            border: 2px solid #fff;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffae52;
+            box-shadow: 0 0 10px rgba(255, 160, 60, 0.85);
+            border: 2px solid #fff;
             cursor: pointer;
         }
 
-        .btn-chips {
-            display: flex;
-            gap: 0.4rem;
-            overflow-x: auto;
-            padding-bottom: 2px;
-        }
-        .btn-chips::-webkit-scrollbar { display: none; }
-
-        .chip {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.15);
-            color: #e5e7eb;
-            padding: 0.35rem 0.65rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-        .chip:hover, .chip.active {
-            background: rgba(255, 119, 0, 0.3);
-            border-color: #ff8800;
-            color: #fff;
-        }
-
-        /* نافذة المعلومات */
-        .info-pop {
-            position: absolute;
-            top: 4.5rem;
-            left: 1.2rem;
-            right: 1.2rem;
-            max-width: 360px;
-            background: rgba(12, 16, 26, 0.9);
-            border: 1px solid #00d2ff;
-            border-radius: 14px;
-            padding: 1rem 1.2rem;
-            z-index: 40;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.9), 0 0 20px rgba(0, 210, 255, 0.2);
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-        }
-        .info-pop.active {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateY(0);
-        }
-        .info-pop h3 {
-            color: #00d2ff;
-            font-size: 0.95rem;
-            margin-bottom: 0.3rem;
-            display: flex;
-            justify-content: space-between;
-        }
-        .info-pop p {
-            font-size: 0.8rem;
-            color: #cbd5e1;
-            line-height: 1.5;
-        }
-        .info-pop .close-x {
-            cursor: pointer;
-            color: #94a3b8;
+        @media (max-width: 480px) {
+            #hud {
+                bottom: 16px;
+                padding: 12px 16px;
+                width: calc(100vw - 82px);
+                left: auto;
+                right: 14px;
+                transform: none;
+            }
+            #hud.hidden {
+                transform: translateY(30px) scale(0.96);
+            }
+            #ui-toggle {
+                bottom: 22px;
+                left: 14px;
+            }
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <button class="toggle-hud-btn" id="toggleHud" title="إخفاء / إظهار اللوحة">⚙️</button>
-
-    <header id="header">
-        <h1>محاكي غارغانتوا (Gargantua)</h1>
-        <p>عدسة الجاذبية والقرص المتوهج بتقنية الشيدر</p>
-    </header>
-
     <canvas id="glcanvas"></canvas>
 
-    <div class="info-pop" id="infoPop">
-        <h3><span id="popTitle">أفق الحدث</span> <span class="close-x" id="closePop">✕</span></h3>
-        <p id="popDesc">المعبر النهائي للزمكان؛ حيث تنحني مسارات الضوء والمادة إلى المركز دون أدنى فرصة للهروب.</p>
+    <button id="ui-toggle" title="إخفاء / إظهار الإعدادات" aria-label="تبديل واجهة المستخدم">⚙️</button>
+
+    <div id="hud">
+        <div class="hud-header">
+            <div class="hud-title">
+                <span class="dot"></span>
+                <span>ثقب جارجانتوا الأسود (Gargantua)</span>
+            </div>
+            <div class="hud-hint">اسحب للدوران • قرّب للتكبير</div>
+        </div>
+        <div class="controls-grid">
+            <div class="control-group">
+                <div class="control-label">
+                    <span>البُعد / زاوية الرؤية</span>
+                    <span class="control-value" id="dist-val">13.5 Rs</span>
+                </div>
+                <input type="range" id="dist-slider" min="6.5" max="24.0" step="0.1" value="13.5">
+            </div>
+            <div class="control-group">
+                <div class="control-label">
+                    <span>سرعة دوران البلازما</span>
+                    <span class="control-value" id="speed-val">1.0x</span>
+                </div>
+                <input type="range" id="speed-slider" min="0.0" max="3.0" step="0.05" value="1.0">
+            </div>
+        </div>
     </div>
 
-    <div class="hud-panel" id="hudPanel">
-        <div class="hud-row">
-            <span class="hud-label">المسافة (Zoom)</span>
-            <input type="range" class="hud-slider" id="zoom" min="0.6" max="2.2" step="0.05" value="1.0">
-        </div>
-        <div class="hud-row">
-            <span class="hud-label">السرعة الدورانية</span>
-            <input type="range" class="hud-slider" id="speed" min="0.1" max="3.0" step="0.1" value="1.0">
-        </div>
-        <div class="btn-chips">
-            <button class="chip" onclick="explain('horizon')">أفق الحدث</button>
-            <button class="chip" onclick="explain('photon')">حلقة الفوتونات</button>
-            <button class="chip" onclick="explain('lensing')">القوس الضوئي</button>
-            <button class="chip" onclick="explain('doppler')">تأثير دوبلر</button>
-        </div>
-    </div>
+    <!-- Vertex Shader -->
+    <script id="vs" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+    </script>
 
-    <!-- كود الـ Shaders عالي الدقة (Raymarching Gravitational Simulation) -->
+    <!-- Fragment Shader: Relativistic Raymarcher -->
+    <script id="fs" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform vec2 u_resolution;
+        uniform float u_time;
+        uniform vec2 u_camAngles; // x: yaw (azimuth), y: pitch (elevation)
+        uniform float u_camDist;  // Camera orbital radius
+        uniform float u_roll;     // Camera roll angle for dramatic Gargantua tilt
+
+        #define PI 3.14159265359
+        #define MAX_STEPS 115
+
+        // Fast High-Quality Procedural Hashes
+        float hash12(vec2 p) {
+            vec3 p3  = fract(vec3(p.xyx) * 0.1031);
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.x + p3.y) * p3.z);
+        }
+
+        float hash13(vec3 p3) {
+            p3  = fract(p3 * 0.1031);
+            p3 += dot(p3, p3.zyx + 31.32);
+            return fract((p3.x + p3.y) * p3.z);
+        }
+
+        // 2D Value Noise
+        float noise2(vec2 x) {
+            vec2 i = floor(x);
+            vec2 f = fract(x);
+            f = f * f * (3.0 - 2.0 * f);
+            float a = hash12(i);
+            float b = hash12(i + vec2(1.0, 0.0));
+            float c = hash12(i + vec2(0.0, 1.0));
+            float d = hash12(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // 3D Value Noise for Volumetric Nebula & Plasma
+        float noise3(vec3 x) {
+            vec3 p = floor(x);
+            vec3 f = fract(x);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(
+                mix(mix(hash13(p + vec3(0,0,0)), hash13(p + vec3(1,0,0)), f.x),
+                    mix(hash13(p + vec3(0,1,0)), hash13(p + vec3(1,1,0)), f.x), f.y),
+                mix(mix(hash13(p + vec3(0,0,1)), hash13(p + vec3(1,0,1)), f.x),
+                    mix(hash13(p + vec3(0,1,1)), hash13(p + vec3(1,1,1)), f.x), f.y),
+                f.z
+            );
+        }
+
+        // 5-Octave 2D fBm with rotational domain matrix
+        const mat2 m2 = mat2(0.80, -0.60, 0.60, 0.80);
+        float fbm2(vec2 p) {
+            float f = 0.0;
+            float amp = 0.5;
+            for (int i = 0; i < 5; i++) {
+                f += amp * noise2(p);
+                p = m2 * p * 2.03 + vec2(13.7, 7.3);
+                amp *= 0.5;
+            }
+            return f;
+        }
+
+        // 4-Octave 3D fBm for Cosmic Dust
+        float fbm3(vec3 p) {
+            float f = 0.0;
+            float amp = 0.5;
+            for (int i = 0; i < 4; i++) {
+                f += amp * noise3(p);
+                p = p * 2.05 + vec3(7.1, 11.3, 5.7);
+                amp *= 0.5;
+            }
+            return f;
+        }
+
+        // Physical Blackbody-inspired Color Ramp (Cool Dark Red -> Orange -> Gold -> Blazing White-Blue)
+        vec3 blackbodyColor(float temp) {
+            temp = clamp(temp, 0.0, 2.5);
+            vec3 c1 = vec3(0.18, 0.01, 0.0);   // Deep smoldering crimson
+            vec3 c2 = vec3(0.85, 0.16, 0.02);  // Rich fiery red-orange
+            vec3 c3 = vec3(1.00, 0.55, 0.10);  // Luminous golden orange
+            vec3 c4 = vec3(1.00, 0.93, 0.78);  // Brilliant warm white
+            vec3 c5 = vec3(0.82, 0.92, 1.00);  // Relativistic Doppler blue-white
+
+            vec3 col = mix(c1, c2, smoothstep(0.0, 0.30, temp));
+            col = mix(col, c3, smoothstep(0.30, 0.68, temp));
+            col = mix(col, c4, smoothstep(0.68, 1.15, temp));
+            col = mix(col, c5, smoothstep(1.15, 2.10, temp));
+            return col;
+        }
+
+        // Deep Space Skybox (Gravitationally Lensed Background Stars + Milky Way Nebula)
+        vec3 sampleSkybox(vec3 rd) {
+            vec3 col = vec3(0.004, 0.005, 0.009);
+
+            // Tilted Galactic Plane coordinates
+            vec3 galCoord = vec3(
+                rd.x * 0.86 - rd.y * 0.50,
+                rd.x * 0.50 + rd.y * 0.86,
+                rd.z
+            );
+
+            float galBand = exp(-abs(galCoord.y) * 3.8);
+            float n1 = fbm3(galCoord * 2.6 + vec3(1.2, 3.4, 5.6));
+            float n2 = fbm3(galCoord * 6.0 - vec3(2.4, 1.1, 0.8));
+            float dustLane = smoothstep(0.42, 0.68, n2);
+
+            // Warm galactic core & cool outer nebula clouds
+            vec3 nebWarm = vec3(0.26, 0.13, 0.06) * n1 * galBand;
+            vec3 nebCool = vec3(0.05, 0.10, 0.22) * (1.0 - n1) * galBand;
+            vec3 nebMagenta = vec3(0.18, 0.05, 0.14) * pow(n1 * n2, 1.5) * galBand * 2.0;
+
+            col += (nebWarm + nebCool + nebMagenta) * (1.0 - 0.65 * dustLane);
+
+            // Equirectangular Spherical UV for Starfields
+            vec2 sphUV = vec2(atan(rd.z, rd.x), asin(clamp(rd.y, -0.999, 0.999)));
+
+            // Layer 1: Dense faint background stars
+            vec2 grid1 = sphUV * 48.0;
+            vec2 id1 = floor(grid1);
+            vec2 gv1 = fract(grid1) - 0.5;
+            float r1 = hash12(id1);
+            if (r1 > 0.78) {
+                vec2 offset = vec2(hash12(id1 + 11.3), hash12(id1 + 27.9)) - 0.5;
+                float d = length(gv1 - offset * 0.65);
+                float star = exp(-d * 32.0) * smoothstep(0.78, 1.0, r1);
+                vec3 sCol = mix(vec3(1.0, 0.72, 0.5), vec3(0.65, 0.82, 1.0), hash12(id1 + 5.1));
+                col += sCol * star * 1.3;
+            }
+
+            // Layer 2: Bright hero stars with subtle scintillation
+            vec2 grid2 = sphUV * 19.0;
+            vec2 id2 = floor(grid2);
+            vec2 gv2 = fract(grid2) - 0.5;
+            float r2 = hash12(id2 + 99.1);
+            if (r2 > 0.93) {
+                vec2 offset = vec2(hash12(id2 + 41.2), hash12(id2 + 83.7)) - 0.5;
+                float d = length(gv2 - offset * 0.55);
+                float twinkle = 0.82 + 0.18 * sin(u_time * 3.0 + r2 * 80.0);
+                float core = exp(-d * 28.0) * 2.2;
+                float halo = exp(-d * 7.5) * 0.35;
+                vec3 sCol = mix(vec3(1.0, 0.80, 0.55), vec3(0.75, 0.90, 1.0), fract(r2 * 17.3));
+                col += sCol * (core + halo) * twinkle;
+            }
+
+            return col;
+        }
+
+        // Accretion Disk Volumetric Plasma Evaluation
+        void evaluateDisk(
+            vec3 pos,
+            vec3 rayDir,
+            float r,
+            float halfThickness,
+            float stepMetric,
+            inout vec3 accumLight,
+            inout float transmittance
+        ) {
+            float innerEdge = 1.65;
+            float outerEdge = 8.80;
+
+            if (r < innerEdge || r > outerEdge) return;
+
+            // Vertical Gaussian falloff from equatorial plane Y=0
+            float verticalFalloff = exp(- (pos.y * pos.y) / (halfThickness * halfThickness));
+            if (verticalFalloff < 0.005) return;
+
+            // Radial envelope (sharp hot inner cutoff at ISCO, gradual outer taper)
+            float radialIn  = smoothstep(innerEdge, 2.35, r);
+            float radialOut = 1.0 - smoothstep(4.2, outerEdge, r);
+            float radialEnv = radialIn * radialOut;
+
+            // Keplerian differential rotation: angular velocity omega ~ r^(-1.5)
+            float angle = atan(pos.z, pos.x);
+            float keplerOmega = 2.8 / pow(r, 1.35);
+            float spiralPhase = angle + u_time * keplerOmega;
+
+            // Seamless polar coordinate mapping for sheared plasma filaments
+            // Multi-scale turbulent streaks stretched azimuthally by differential shear
+            float shearAngle = angle * 2.0 - r * 3.8 + u_time * keplerOmega * 1.4;
+            vec2 streakCoord1 = vec2(cos(shearAngle), sin(shearAngle)) * (r * 0.9) + vec2(r * 2.4, u_time * 0.25);
+            vec2 streakCoord2 = vec2(cos(angle * 5.0 + r * 6.5 - u_time * keplerOmega * 2.0),
+                                     sin(angle * 5.0 + r * 6.5 - u_time * keplerOmega * 2.0)) * 1.35;
+
+            float fbmCoarse = fbm2(streakCoord1);
+            float fbmFine   = fbm2(streakCoord2 + fbmCoarse * 1.65);
+
+            // High-frequency concentric plasma rings (characteristic of Gargantua)
+            float ringFreq1 = sin(r * 16.0 - fbmCoarse * 5.5 + u_time * 0.6) * 0.5 + 0.5;
+            float ringFreq2 = sin(r * 38.0 + fbmFine * 6.2 - spiralPhase) * 0.5 + 0.5;
+            float rings = mix(ringFreq1, ringFreq2, 0.45);
+
+            // Combine turbulence and sheared spiral filaments
+            float filaments = smoothstep(0.18, 0.85, fbmCoarse * 0.55 + fbmFine * 0.45);
+            filaments *= (0.45 + 0.75 * pow(rings, 1.3));
+
+            // Hot bright inner ring boost near ISCO
+            float innerBoost = exp(-(r - 2.15) * (r - 2.15) * 1.6) * 0.75;
+
+            float localDensity = (filaments + innerBoost) * radialEnv * verticalFalloff;
+            if (localDensity < 0.002) return;
+
+            // Relativistic Doppler Beaming & Gravitational Redshift
+            // Tangential orbital velocity vector in XZ plane (counter-clockwise)
+            vec3 velDir = normalize(vec3(-pos.z, 0.0, pos.x));
+            // Beta = v/c ~ sqrt(Rs / (2r))
+            float beta = clamp(0.62 / sqrt(max(r - 0.8, 0.5)), 0.0, 0.58);
+            // Alignment of plasma motion with incoming camera ray (-rayDir points toward camera)
+            float cosTheta = dot(velDir, -rayDir);
+            // Relativistic Doppler factor
+            float doppler = 1.0 + beta * cosTheta * 1.15;
+            float beamingIntensity = pow(clamp(doppler, 0.35, 1.85), 3.1);
+
+            // Temperature profile: hotter near the inner horizon + boosted on approaching side
+            float radialTemp = pow(clamp(1.0 - (r - innerEdge) / (outerEdge - innerEdge), 0.0, 1.0), 0.65);
+            float temp = (0.38 + 0.75 * radialTemp + 0.35 * filaments) * pow(clamp(doppler, 0.55, 1.55), 1.45);
+
+            vec3 plasmaCol = blackbodyColor(temp);
+
+            // Dark dust absorption lanes in cooler outer regions
+            float dustMask = smoothstep(0.55, 0.15, fbmFine) * smoothstep(2.6, 5.5, r);
+            plasmaCol *= (1.0 - 0.55 * dustMask);
+
+            // Radiative transfer integration step
+            float stepAlpha = clamp(localDensity * stepMetric * 4.2, 0.0, 0.95);
+            vec3 emission = plasmaCol * (1.55 * beamingIntensity * (1.0 + 1.8 * radialTemp));
+
+            accumLight += transmittance * emission * stepAlpha;
+            transmittance *= (1.0 - stepAlpha * 0.82);
+        }
+
+        void main() {
+            // Normalized screen coordinates [-1, 1] corrected for aspect ratio
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+
+            // Camera Spherical Orbit Setup
+            float yaw   = u_camAngles.x;
+            float pitch = u_camAngles.y;
+
+            vec3 ro = vec3(
+                u_camDist * cos(pitch) * sin(yaw),
+                u_camDist * sin(pitch),
+                u_camDist * cos(pitch) * cos(yaw)
+            );
+
+            // Camera Basis Matrix with Cinematic Roll Tilt
+            vec3 forward = normalize(-ro);
+            vec3 worldUp = vec3(0.0, 1.0, 0.0);
+            vec3 right0  = normalize(cross(forward, worldUp));
+            vec3 up0     = cross(right0, forward);
+
+            float cr = cos(u_roll);
+            float sr = sin(u_roll);
+            vec3 right = right0 * cr + up0 * sr;
+            vec3 up    = -right0 * sr + up0 * cr;
+
+            // Perspective Ray Direction
+            float focalLength = 1.25;
+            vec3 rd = normalize(forward * focalLength + right * uv.x + up * uv.y);
+
+            // Sub-pixel jitter to eliminate volumetric banding
+            float dither = hash12(gl_FragCoord.xy + fract(u_time * 13.7));
+
+            // Raymarching State Variables
+            vec3 pos = ro;
+            vec3 accumLight = vec3(0.0);
+            float transmittance = 1.0;
+            bool capturedByHorizon = false;
+
+            float minRadiusReached = 1000.0;
+            float closestPhotonApproach = 1000.0;
+
+            // Pre-advance ray slightly with dither
+            pos += rd * (0.08 * dither);
+
+            // 3D Geodesic Raymarching Loop through Curved Schwarzschild Spacetime
+            for (int i = 0; i < MAX_STEPS; i++) {
+                float r2 = dot(pos, pos);
+                float r  = sqrt(r2);
+
+                minRadiusReached = min(minRadiusReached, r);
+                // Track grazing proximity to the unstable Photon Sphere (r ~ 1.5 Rs)
+                closestPhotonApproach = min(closestPhotonApproach, abs(r - 1.52));
+
+                // 1. Event Horizon Capture (Rs = 1.0)
+                if (r < 1.0) {
+                    capturedByHorizon = true;
+                    break;
+                }
+
+                // 2. Escape Condition (Far from gravitational well)
+                if (r > 28.0 && dot(pos, rd) > 0.0) {
+                    break;
+                }
+
+                // 3. Adaptive Step Size Calculation
+                // Fine steps near the event horizon/photon sphere and near the equatorial disk plane
+                float diskHalfHeight = 0.08 + 0.032 * max(r - 1.5, 0.0);
+                float distToEquatorialPlane = max(abs(pos.y) - diskHalfHeight * 1.8, 0.0);
+
+                float stepHorizon = max(0.038, (r - 0.92) * 0.14);
+                float stepDisk    = clamp(distToEquatorialPlane * 0.48 + 0.042, 0.042, 0.65);
+                float dt = min(stepHorizon, stepDisk);
+
+                // 4. Relativistic Gravitational Deflection (Geodesic Bending)
+                // Effective general relativistic acceleration for null geodesics:
+                // d²r/dλ² = -1.5 * Rs * L² / r⁵ * r_vec
+                vec3 angularMomentumVec = cross(pos, rd);
+                float L2 = dot(angularMomentumVec, angularMomentumVec);
+                vec3 gravAccel = -1.5 * L2 * pos / (r2 * r2 * r + 0.0001);
+
+                // Symplectic Leapfrog / Verlet-like Midpoint Integration
+                vec3 nextRd = normalize(rd + gravAccel * dt);
+                vec3 midRd  = normalize(0.5 * (rd + nextRd));
+                vec3 nextPos = pos + midRd * dt;
+
+                // 5. Exact Equatorial Plane Crossing Detection + Volumetric Sampling
+                // Ensures zero aliasing even when viewing the disk nearly edge-on
+                if (pos.y * nextPos.y <= 0.0) {
+                    float tCross = abs(pos.y) / (abs(pos.y - nextPos.y) + 1e-5);
+                    vec3 crossPos = mix(pos, nextPos, tCross);
+                    float crossR = length(crossPos);
+                    evaluateDisk(crossPos, midRd, crossR, diskHalfHeight, dt * 1.45, accumLight, transmittance);
+                } else if (abs(pos.y) < diskHalfHeight * 2.4) {
+                    vec3 midPos = 0.5 * (pos + nextPos);
+                    float midR = length(midPos);
+                    evaluateDisk(midPos, midRd, midR, diskHalfHeight, dt, accumLight, transmittance);
+                }
+
+                pos = nextPos;
+                rd  = nextRd;
+
+                if (transmittance < 0.008) break;
+            }
+
+            // 6. Photon Ring & Relativistic Lensed Skybox Composition
+            // Brilliant razor-thin golden-white Photon Ring right at the critical impact boundary
+            float photonRing = exp(-closestPhotonApproach * 34.0) * smoothstep(2.3, 1.45, minRadiusReached);
+            float secondaryHalo = exp(-closestPhotonApproach * 9.5) * 0.28;
+            vec3 photonCol = vec3(1.0, 0.86, 0.62) * (photonRing * 2.4 + secondaryHalo);
+
+            accumLight += transmittance * photonCol;
+
+            // Sample Gravitationally Warped Background Skybox for rays escaping to infinity
+            if (!capturedByHorizon) {
+                vec3 skyCol = sampleSkybox(rd);
+                // Einstein ring amplification near the shadow edge
+                float lensingBoost = 1.0 + 0.65 * exp(-max(minRadiusReached - 1.5, 0.0) * 2.2);
+                accumLight += transmittance * skyCol * lensingBoost;
+            }
+
+            // Subtle atmospheric relativistic glow around the accretion core
+            float screenCenterDist = length(uv);
+            accumLight += vec3(1.0, 0.48, 0.15) * exp(-screenCenterDist * 3.6) * 0.055;
+
+            // ACES Filmic Tone Mapping for High Dynamic Range Plasma & Stars
+            vec3 x = accumLight * 0.92;
+            vec3 tonemapped = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+
+            // Subtle cinematic contrast & gamma correction
+            tonemapped = pow(tonemapped, vec3(0.92));
+
+            // Natural edge vignette
+            float vignette = smoothstep(1.45, 0.35, length(uv));
+            tonemapped *= mix(0.65, 1.0, vignette);
+
+            gl_FragColor = vec4(tonemapped, 1.0);
+        }
+    </script>
+
     <script>
-        const canvas = document.getElementById('glcanvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        (function() {
+            const canvas = document.getElementById('glcanvas');
+            const gl = canvas.getContext('webgl', {
+                alpha: false,
+                depth: false,
+                stencil: false,
+                antialias: false,
+                powerPreference: 'high-performance'
+            });
 
-        if (!gl) {
-            alert('متصفحك لا يدعم WebGL');
-        }
-
-        // Vertex Shader
-        const vsSource = `
-            attribute vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
-
-        // Fragment Shader: محاكاة سينمائية لانحناء الضوء وقرص التراكم الدوامي
-        const fsSource = `
-            precision highp float;
-            uniform vec2 u_resolution;
-            uniform float u_time;
-            uniform float u_zoom;
-            uniform vec2 u_rot;
-
-            #define PI 3.14159265359
-
-            // خوارزمية ضوضاء ناعمة لتمثيل دوامات الغاز الساخن
-            float hash(vec2 p) {
-                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+            if (!gl) {
+                alert('عذراً، متصفحك لا يدعم WebGL المطلوب لتشغيل محاكاة الثقب الأسود.');
+                return;
             }
 
-            float noise(vec2 p) {
-                vec2 i = floor(p);
-                vec2 f = fract(p);
-                f = f * f * (3.0 - 2.0 * f);
-                float a = hash(i);
-                float b = hash(i + vec2(1.0, 0.0));
-                float c = hash(i + vec2(0.0, 1.0));
-                float d = hash(i + vec2(1.0, 1.0));
-                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-            }
-
-            float fbm(vec2 p) {
-                float v = 0.0;
-                float a = 0.5;
-                for (int i = 0; i < 4; i++) {
-                    v += a * noise(p);
-                    p *= 2.05;
-                    a *= 0.5;
+            // Compile Shader Helper
+            function compileShader(type, source) {
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                    gl.deleteShader(shader);
+                    return null;
                 }
-                return v;
+                return shader;
             }
 
-            void main() {
-                // إحداثيات الشاشة الموحدة
-                vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
-                uv *= (2.4 / u_zoom);
+            const vsSource = document.getElementById('vs').textContent;
+            const fsSource = document.getElementById('fs').textContent;
 
-                // تطبيق التدوير والتفاعل باللمس
-                float cosY = cos(u_rot.y);
-                float sinY = sin(u_rot.y);
-                uv = vec2(uv.x, uv.y * cosY);
+            const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
+            const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fsSource);
 
-                float r = length(uv);
-                float phi = atan(uv.y, uv.x);
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
 
-                // نصف قطر أفق الحدث
-                float rh = 0.45;
-
-                // 1. سواد أفق الحدث المطلق
-                if (r < rh) {
-                    // حافة الفوتونات الرفيعة والمتوهجة مباشرة عند الحد
-                    float edge = smoothstep(rh - 0.02, rh, r);
-                    vec3 photonRing = vec3(1.0, 0.9, 0.8) * pow(edge, 16.0) * 2.0;
-                    gl_FragColor = vec4(photonRing, 1.0);
-                    return;
-                }
-
-                // 2. محاكاة عدسة الجاذبية (Gravitational Lensing Deflection)
-                // الضوء ينحني بمقدار نسبي كلما اقترب من أفق الحدث
-                float bend = rh / (r - rh * 0.75);
-                float distortedR = r - 0.12 * bend;
-
-                // 3. محاكاة قرص التراكم العلوي المنحني والقاعدة الأفقية
-                // ندمج تشوهين: الإسقاط الاستوائي والإسقاط المنحني فوق الثقب
-                float diskR = distortedR;
-                float gasDist = abs(diskR - 1.1);
-
-                // سرعة دوران الغاز (تزداد كلما اقتربنا من الثقب - قانون كبلر النسبي)
-                float speed = u_time * 0.8 * (0.6 / max(diskR, 0.2));
-                float spiralAngle = phi - speed;
-
-                // رسم خطوط ونسيج الغاز الملتهب
-                vec2 gasCoord = vec2(diskR * 6.0, spiralAngle * 4.0);
-                float gasPattern = fbm(gasCoord);
-                gasPattern += 0.5 * fbm(gasCoord * 2.5 + vec2(u_time, 0.0));
-
-                // شدة توهج القرص
-                float diskGlow = exp(-gasDist * 3.8) * gasPattern;
-
-                // 4. حلقة الضوء المعكوسة العلوية والسفلية (الضوء المار خلف الثقب)
-                float lensArcDist = abs(r - rh * 1.55);
-                float lensGlow = exp(-lensArcDist * 7.0) * (0.7 + 0.3 * sin(phi * 2.0));
-
-                // 5. تأثير دوبلر النسبي (الجانب الأيسر يدور باتجاهنا فيكون أسطع)
-                float doppler = 1.0 + 0.85 * cos(phi + 0.3);
-
-                // تجميع الإضاءة
-                float totalIntensity = (diskGlow * 2.2 + lensGlow * 1.8) * doppler;
-
-                // تلوين البلازما: تدرج فيزيائي من الأبيض الساخن للبرتقالي فالأحمر
-                vec3 colCore = vec3(1.0, 0.95, 0.85); // قلب شديد السخونة (أبيض مصفر)
-                vec3 colMid  = vec3(1.0, 0.45, 0.05); // غاز متوسط (برتقالي ناري)
-                vec3 colDark = vec3(0.5, 0.08, 0.01); // حواف الغاز الباردة (أحمر داكن)
-
-                vec3 finalColor = mix(colDark, colMid, clamp(totalIntensity * 0.6, 0.0, 1.0));
-                finalColor = mix(finalColor, colCore, clamp(pow(totalIntensity * 0.5, 2.5), 0.0, 1.0));
-
-                // هالة توهج محيطية خفيفة (Bloom)
-                finalColor += colMid * 0.15 * exp(-r * 1.2);
-
-                // حلقة الفوتونات المشعة (Photon Sphere)
-                float photonRing = smoothstep(0.015, 0.0, abs(r - rh * 1.12)) * 2.2 * doppler;
-                finalColor += vec3(1.0, 0.95, 0.9) * photonRing;
-
-                gl_FragColor = vec4(finalColor, 1.0);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program link error:', gl.getProgramInfoLog(program));
+                return;
             }
-        `;
-
-        function createShader(gl, type, source) {
-            const shader = gl.createShader(type);
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.error(gl.getShaderInfoLog(shader));
-                gl.deleteShader(shader);
-                return null;
-            }
-            return shader;
-        }
-
-        const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
-        const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-        const program = gl.createProgram();
-        gl.attachShader(program, vs);
-        gl.attachShader(program, fs);
-        gl.linkProgram(program);
-
-        // إنشاء المربع الكامل للشاشة (Full Screen Quad)
-        const posBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            -1, -1,  1, -1, -1,  1,
-            -1,  1,  1, -1,  1,  1
-        ]), gl.STATIC_DRAW);
-
-        const aPos = gl.getAttribLocation(program, 'position');
-        const uRes = gl.getUniformLocation(program, 'u_resolution');
-        const uTime = gl.getUniformLocation(program, 'u_time');
-        const uZoom = gl.getUniformLocation(program, 'u_zoom');
-        const uRot = gl.getUniformLocation(program, 'u_rot');
-
-        let zoom = 1.0;
-        let speedMult = 1.0;
-        let rot = [0.0, 0.55]; // ميلان افتراضي يحاكي المشهد الأفقي المائل
-        let isDragging = false;
-        let lastTouch = { x: 0, y: 0 };
-
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            gl.viewport(0, 0, canvas.width, canvas.height);
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        // التفاعل بالسحب واللمس بزاوية ناعمة
-        window.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('.hud-panel') || e.target.closest('.toggle-hud-btn') || e.target.closest('.info-pop')) return;
-            isDragging = true;
-            lastTouch = { x: e.clientX, y: e.clientY };
-        });
-
-        window.addEventListener('pointermove', (e) => {
-            if (!isDragging) return;
-            const dx = e.clientX - lastTouch.x;
-            const dy = e.clientY - lastTouch.y;
-            rot[1] = Math.max(0.1, Math.min(1.2, rot[1] + dy * 0.004));
-            lastTouch = { x: e.clientX, y: e.clientY };
-        });
-
-        window.addEventListener('pointerup', () => isDragging = false);
-
-        // التحكم
-        document.getElementById('zoom').addEventListener('input', (e) => zoom = parseFloat(e.target.value));
-        document.getElementById('speed').addEventListener('input', (e) => speedMult = parseFloat(e.target.value));
-
-        // زر إخفاء / إظهار الواجهة
-        const hud = document.getElementById('hudPanel');
-        const header = document.getElementById('header');
-        document.getElementById('toggleHud').addEventListener('click', () => {
-            hud.classList.toggle('hidden');
-            header.style.opacity = hud.classList.contains('hidden') ? '0' : '1';
-        });
-
-        // نافذة المعلومات
-        const infoPop = document.getElementById('infoPop');
-        const popTitle = document.getElementById('popTitle');
-        const popDesc = document.getElementById('popDesc');
-        document.getElementById('closePop').addEventListener('click', () => infoPop.classList.remove('active'));
-
-        const infoTexts = {
-            horizon: {
-                title: "أفق الحدث (Event Horizon)",
-                desc: "الحدود الفاصلة التي لا يرجع من ورائها شيء؛ جاذبية هائلة تجعل سرعة الإفلات أعلى من سرعة الضوء نفسه."
-            },
-            photon: {
-                title: "حلقة الفوتونات (Photon Ring)",
-                desc: "الحلقة البيضاء المتوهجة الملتصقة بالثقب، ناتجة عن فوتونات ضوئية دارت حول الثقب واستقرت في مدارات حادة قبل الإفلات."
-            },
-            lensing: {
-                title: "القوس الضوئي العلوي (Lensing)",
-                desc: "تأثير نسبي حقيقي؛ الجزء العلوي ليس قرصاً قائماً، بل هو صورة الوجه الخلفي للقرص بعد أن ثنت جاذبية الثقب أشعته نحوك!"
-            },
-            doppler: {
-                title: "تأثير دوبلر النسبي (Doppler)",
-                desc: "لاحظ أن جهة اليسار أشد توهجاً وبياضاً من اليمين، لأن المادة هناك تدور مقتربة من عين الراصد بسرعة تقارب سرعة الضوء."
-            }
-        };
-
-        function explain(key) {
-            popTitle.textContent = infoTexts[key].title;
-            popDesc.textContent = infoTexts[key].desc;
-            infoPop.classList.add('active');
-        }
-
-        // حلقة الرسم (Render Loop)
-        let startTime = performance.now();
-        let simTime = 0;
-
-        function render(now) {
-            let dt = (now - startTime) * 0.001;
-            startTime = now;
-            simTime += dt * speedMult;
 
             gl.useProgram(program);
 
-            gl.enableVertexAttribArray(aPos);
-            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+            // Fullscreen Quad Buffer
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array([
+                    -1.0, -1.0,
+                     1.0, -1.0,
+                    -1.0,  1.0,
+                    -1.0,  1.0,
+                     1.0, -1.0,
+                     1.0,  1.0
+                ]),
+                gl.STATIC_DRAW
+            );
 
-            gl.uniform2f(uRes, canvas.width, canvas.height);
-            gl.uniform1f(uTime, simTime);
-            gl.uniform1f(uZoom, zoom);
-            gl.uniform2f(uRot, rot[0], rot[1]);
+            const posLocation = gl.getAttribLocation(program, 'a_position');
+            gl.enableVertexAttribArray(posLocation);
+            gl.vertexAttribPointer(posLocation, 2, gl.FLOAT, false, 0, 0);
 
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            // Uniform Locations
+            const uResolution = gl.getUniformLocation(program, 'u_resolution');
+            const uTime       = gl.getUniformLocation(program, 'u_time');
+            const uCamAngles  = gl.getUniformLocation(program, 'u_camAngles');
+            const uCamDist    = gl.getUniformLocation(program, 'u_camDist');
+            const uRoll       = gl.getUniformLocation(program, 'u_roll');
+
+            // Camera & Simulation State
+            // Default inclination ~18.5 degrees (0.32 rad) with -16 deg cinematic Gargantua roll
+            let targetYaw   = -0.35;
+            let targetPitch = 0.30;
+            let currentYaw   = targetYaw;
+            let currentPitch = targetPitch;
+
+            let targetDist  = 13.5;
+            let currentDist = targetDist;
+            const cameraRoll = -0.27; // Characteristic diagonal tilt from Interstellar
+
+            let simSpeed = 1.0;
+            let simTime  = 0.0;
+            let lastFrameTime = performance.now();
+
+            // Responsive Resize with Mobile High-DPI Clamping (Max 1.5x for stable 60fps)
+            function resizeCanvas() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+                const width  = Math.floor(window.innerWidth * dpr);
+                const height = Math.floor(window.innerHeight * dpr);
+
+                if (canvas.width !== width || canvas.height !== height) {
+                    canvas.width  = width;
+                    canvas.height = height;
+                    gl.viewport(0, 0, width, height);
+                }
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // UI Controls Wiring
+            const distSlider  = document.getElementById('dist-slider');
+            const distVal     = document.getElementById('dist-val');
+            const speedSlider = document.getElementById('speed-slider');
+            const speedVal    = document.getElementById('speed-val');
+            const uiToggle    = document.getElementById('ui-toggle');
+            const hud         = document.getElementById('hud');
+
+            function updateDistUI(val) {
+                targetDist = Math.max(6.5, Math.min(24.0, val));
+                distSlider.value = targetDist.toFixed(1);
+                distVal.textContent = targetDist.toFixed(1) + ' Rs';
+            }
+
+            distSlider.addEventListener('input', (e) => {
+                updateDistUI(parseFloat(e.target.value));
+            });
+
+            speedSlider.addEventListener('input', (e) => {
+                simSpeed = parseFloat(e.target.value);
+                speedVal.textContent = simSpeed.toFixed(2) + 'x';
+            });
+
+            uiToggle.addEventListener('click', () => {
+                hud.classList.toggle('hidden');
+            });
+
+            // Mouse & Touch Orbit + Pinch-to-Zoom Controls
+            let isDragging = false;
+            let prevX = 0;
+            let prevY = 0;
+            let initialPinchDist = null;
+            let initialCamDist = targetDist;
+
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                prevX = e.clientX;
+                prevY = e.clientY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - prevX;
+                const dy = e.clientY - prevY;
+                prevX = e.clientX;
+                prevY = e.clientY;
+
+                targetYaw   -= dx * 0.0055;
+                targetPitch += dy * 0.0055;
+                targetPitch = Math.max(-1.35, Math.min(1.35, targetPitch));
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                updateDistUI(targetDist + e.deltaY * 0.008);
+            }, { passive: false });
+
+            // Touch Events
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    prevX = e.touches[0].clientX;
+                    prevY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    initialPinchDist = Math.hypot(dx, dy);
+                    initialCamDist = targetDist;
+                }
+            }, { passive: true });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 1 && isDragging) {
+                    const dx = e.touches[0].clientX - prevX;
+                    const dy = e.touches[0].clientY - prevY;
+                    prevX = e.touches[0].clientX;
+                    prevY = e.touches[0].clientY;
+
+                    targetYaw   -= dx * 0.0065;
+                    targetPitch += dy * 0.0065;
+                    targetPitch = Math.max(-1.35, Math.min(1.35, targetPitch));
+                } else if (e.touches.length === 2 && initialPinchDist) {
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const currentPinchDist = Math.hypot(dx, dy);
+                    const scale = initialPinchDist / Math.max(currentPinchDist, 10);
+                    updateDistUI(initialCamDist * scale);
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                if (e.touches.length === 0) {
+                    isDragging = false;
+                    initialPinchDist = null;
+                } else if (e.touches.length === 1) {
+                    initialPinchDist = null;
+                    isDragging = true;
+                    prevX = e.touches[0].clientX;
+                    prevY = e.touches[0].clientY;
+                }
+            });
+
+            // Main Render Loop
+            function render(now) {
+                const dt = Math.min((now - lastFrameTime) * 0.001, 0.1);
+                lastFrameTime = now;
+
+                simTime += dt * simSpeed;
+
+                // Subtle idle orbital drift when user is not dragging
+                if (!isDragging && !initialPinchDist) {
+                    targetYaw += dt * 0.035 * simSpeed;
+                }
+
+                // Smooth Damping Interpolation
+                const smoothFactor = 1.0 - Math.exp(-dt * 10.0);
+                currentYaw   += (targetYaw - currentYaw) * smoothFactor;
+                currentPitch += (targetPitch - currentPitch) * smoothFactor;
+                currentDist  += (targetDist - currentDist) * smoothFactor;
+
+                gl.uniform2f(uResolution, canvas.width, canvas.height);
+                gl.uniform1f(uTime, simTime);
+                gl.uniform2f(uCamAngles, currentYaw, currentPitch);
+                gl.uniform1f(uCamDist, currentDist);
+                gl.uniform1f(uRoll, cameraRoll);
+
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                requestAnimationFrame(render);
+            }
 
             requestAnimationFrame(render);
-        }
-
-        requestAnimationFrame(render);
+        })();
     </script>
 </body>
 </html>
