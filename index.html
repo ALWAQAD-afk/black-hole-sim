@@ -2,535 +2,498 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محاكي الثقب الأسود التفاعلي | Black Hole Explorer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>محاكي الثقب الأسود السينمائي | Black Hole Shader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-space: #030508;
-            --accent-glow: #ff7700;
-            --accent-cyan: #00d2ff;
-            --panel-bg: rgba(10, 16, 26, 0.85);
-            --border-glow: rgba(255, 120, 0, 0.3);
-            --text-main: #f0f4f8;
-            --text-muted: #94a3b8;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        body {
-            background-color: var(--bg-space);
-            color: var(--text-main);
-            font-family: 'Tajawal', sans-serif;
+        body, html {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
+            background: #000;
+            font-family: 'Tajawal', sans-serif;
+            color: #fff;
         }
 
-        /* شاشة الرسم الرئيسية */
-        #viewport {
+        #glcanvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1;
-            cursor: grab;
-        }
-        #viewport:active {
-            cursor: grabbing;
+            display: block;
+            touch-action: none;
         }
 
-        /* شريط العنوان العلوي */
-        header {
-            position: relative;
-            z-index: 10;
-            padding: 1.2rem 2rem;
+        /* زر إخفاء/إظهار الواجهة المخصص للهاتف */
+        .toggle-hud-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 50;
+            background: rgba(15, 20, 30, 0.7);
+            border: 1px solid rgba(255, 140, 0, 0.4);
+            color: #ff9900;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            background: linear-gradient(180deg, rgba(3,5,8,0.9) 0%, transparent 100%);
-            pointer-events: none;
+            justify-content: center;
+            font-size: 1.2rem;
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         }
 
-        .title-box {
-            pointer-events: auto;
+        /* العنوان العلوي المصغر */
+        header {
+            position: absolute;
+            top: 1rem;
+            right: 1.2rem;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
-        .title-box h1 {
-            font-size: 1.6rem;
+        header h1 {
+            font-size: 1.15rem;
             font-weight: 900;
-            letter-spacing: -0.5px;
-            background: linear-gradient(90deg, #ff9900, #ff4400, #00d2ff);
+            background: linear-gradient(90deg, #ffb300, #ff4400, #fff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .title-box p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
+        header p {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
         }
 
-        /* لوحة التحكم الجانبية */
-        .controls-panel {
+        /* لوحة التحكم المصغرة جداً والمناسبة للجوال */
+        .hud-panel {
             position: absolute;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 10;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-glow);
-            padding: 1.25rem 1.5rem;
-            border-radius: 16px;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 20px rgba(255,119,0,0.1);
-            width: 320px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+            bottom: 1.2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 2.4rem);
+            max-width: 420px;
+            background: rgba(10, 14, 22, 0.75);
+            border: 1px solid rgba(255, 140, 0, 0.25);
+            border-radius: 18px;
+            backdrop-filter: blur(16px);
+            padding: 0.85rem 1.1rem;
+            z-index: 20;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
         }
 
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
+        .hud-panel.hidden {
+            transform: translate(-50%, 150%);
+            opacity: 0;
+            pointer-events: none;
         }
-        .control-label {
+
+        .hud-row {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        .control-label span:last-child {
-            color: var(--accent-glow);
-            font-family: monospace;
+            margin-bottom: 0.5rem;
+            gap: 0.8rem;
         }
 
-        input[type="range"] {
+        .hud-label {
+            font-size: 0.8rem;
+            color: #d1d5db;
+            white-space: nowrap;
+        }
+
+        .hud-slider {
+            flex-grow: 1;
             -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.1);
+            height: 5px;
+            background: rgba(255,255,255,0.15);
             border-radius: 4px;
             outline: none;
         }
-        input[type="range"]::-webkit-slider-thumb {
+        .hud-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: var(--accent-glow);
+            background: #ff7700;
+            box-shadow: 0 0 10px #ff7700;
             cursor: pointer;
-            box-shadow: 0 0 10px var(--accent-glow);
         }
 
-        .btn-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
+        .btn-chips {
+            display: flex;
+            gap: 0.4rem;
+            overflow-x: auto;
+            padding-bottom: 2px;
         }
+        .btn-chips::-webkit-scrollbar { display: none; }
 
-        .btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: var(--text-main);
-            padding: 0.5rem 0.75rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
+        .chip {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #e5e7eb;
+            padding: 0.35rem 0.65rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
             cursor: pointer;
-            font-family: inherit;
+            white-space: nowrap;
             transition: all 0.2s;
-            text-align: center;
         }
-        .btn:hover {
-            background: rgba(255, 119, 0, 0.2);
-            border-color: var(--accent-glow);
+        .chip:hover, .chip.active {
+            background: rgba(255, 119, 0, 0.3);
+            border-color: #ff8800;
             color: #fff;
         }
-        .btn.active {
-            background: var(--accent-glow);
-            color: #000;
-            font-weight: 700;
-            border-color: var(--accent-glow);
-        }
 
-        /* نافذة المعلومات المنبثقة */
-        .info-card {
+        /* نافذة المعلومات */
+        .info-pop {
             position: absolute;
-            top: 5rem;
-            left: 2rem;
-            z-index: 10;
-            background: var(--panel-bg);
-            border: 1px solid rgba(0, 210, 255, 0.4);
-            border-radius: 16px;
-            backdrop-filter: blur(12px);
-            padding: 1.5rem;
-            max-width: 340px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 25px rgba(0, 210, 255, 0.15);
-            transform: translateY(20px);
+            top: 4.5rem;
+            left: 1.2rem;
+            right: 1.2rem;
+            max-width: 360px;
+            background: rgba(12, 16, 26, 0.9);
+            border: 1px solid #00d2ff;
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            z-index: 40;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9), 0 0 20px rgba(0, 210, 255, 0.2);
             opacity: 0;
             pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
         }
-        .info-card.visible {
-            transform: translateY(0);
+        .info-pop.active {
             opacity: 1;
             pointer-events: auto;
+            transform: translateY(0);
         }
-
-        .info-card h3 {
-            color: var(--accent-cyan);
-            font-size: 1.2rem;
-            margin-bottom: 0.4rem;
+        .info-pop h3 {
+            color: #00d2ff;
+            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            justify-content: space-between;
         }
-        .info-card p {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #d1d5db;
+        .info-pop p {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            line-height: 1.5;
         }
-        .info-card .close-btn {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: none;
-            border: none;
-            color: var(--text-muted);
+        .info-pop .close-x {
             cursor: pointer;
-            font-size: 1.1rem;
-        }
-        .info-card .close-btn:hover {
-            color: #fff;
-        }
-
-        /* مفتاح التعليمات السفلي */
-        .hint-bar {
-            position: absolute;
-            bottom: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 5;
-            background: rgba(0,0,0,0.5);
-            padding: 0.4rem 1.2rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.05);
+            color: #94a3b8;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="title-box">
-            <h1>مِسبار الثقب الأسود التفاعلي</h1>
-            <p>محاكاة بصرية لقرص التراكم، عدسة الجاذبية، وأفق الحدث</p>
-        </div>
+    <button class="toggle-hud-btn" id="toggleHud" title="إخفاء / إظهار اللوحة">⚙️</button>
+
+    <header id="header">
+        <h1>محاكي غارغانتوا (Gargantua)</h1>
+        <p>عدسة الجاذبية والقرص المتوهج بتقنية الشيدر</p>
     </header>
 
-    <canvas id="viewport"></canvas>
+    <canvas id="glcanvas"></canvas>
 
-    <!-- بطاقة المعلومات العلمية -->
-    <div class="info-card" id="infoCard">
-        <button class="close-btn" id="closeInfo">✕</button>
-        <h3 id="infoTitle">أفق الحدث</h3>
-        <p id="infoDesc">هو الغشاء الفاصل المحيط بمركز الثقب الأسود، بمجرد عبور أي جسيم أو شعاع ضوئي لهذا الأفق، تصبح سرعة الإفلات المطلوبة أعلى من سرعة الضوء، فلا يمكن لأي معلومة الهروب إلى الفضاء الخارجي أبداً.</p>
+    <div class="info-pop" id="infoPop">
+        <h3><span id="popTitle">أفق الحدث</span> <span class="close-x" id="closePop">✕</span></h3>
+        <p id="popDesc">المعبر النهائي للزمكان؛ حيث تنحني مسارات الضوء والمادة إلى المركز دون أدنى فرصة للهروب.</p>
     </div>
 
-    <!-- لوحة التحكم التفاعلية -->
-    <div class="controls-panel">
-        <div class="control-group">
-            <div class="control-label">
-                <span>المسافة (Zoom)</span>
-                <span id="zoomVal">1.0x</span>
-            </div>
-            <input type="range" id="zoomRange" min="0.5" max="2.2" step="0.05" value="1.0">
+    <div class="hud-panel" id="hudPanel">
+        <div class="hud-row">
+            <span class="hud-label">المسافة (Zoom)</span>
+            <input type="range" class="hud-slider" id="zoom" min="0.6" max="2.2" step="0.05" value="1.0">
         </div>
-
-        <div class="control-group">
-            <div class="control-label">
-                <span>سرعة الدوران</span>
-                <span id="speedVal">1.0x</span>
-            </div>
-            <input type="range" id="speedRange" min="0.1" max="4.0" step="0.1" value="1.0">
+        <div class="hud-row">
+            <span class="hud-label">السرعة الدورانية</span>
+            <input type="range" class="hud-slider" id="speed" min="0.1" max="3.0" step="0.1" value="1.0">
         </div>
-
-        <div class="control-group">
-            <div class="control-label">
-                <span>انحناء زاوية الرؤية (Tilt)</span>
-            </div>
-            <div class="btn-group">
-                <button class="btn active" id="btnTiltMid">زاوية مائلة (30°)</button>
-                <button class="btn" id="btnTiltFlat">أفقي مستوٍ</button>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <div class="control-label">
-                <span>استكشاف النقاط العلمية</span>
-            </div>
-            <div class="btn-group">
-                <button class="btn" onclick="showInfo('horizon')">أفق الحدث</button>
-                <button class="btn" onclick="showInfo('disk')">قرص التراكم</button>
-                <button class="btn" onclick="showInfo('lensing')">انحناء الضوء</button>
-                <button class="btn" onclick="showInfo('photon')">كرة الفوتونات</button>
-            </div>
+        <div class="btn-chips">
+            <button class="chip" onclick="explain('horizon')">أفق الحدث</button>
+            <button class="chip" onclick="explain('photon')">حلقة الفوتونات</button>
+            <button class="chip" onclick="explain('lensing')">القوس الضوئي</button>
+            <button class="chip" onclick="explain('doppler')">تأثير دوبلر</button>
         </div>
     </div>
 
-    <div class="hint-bar">
-        💡 اسحب الشاشة بالفأرة أو باللمس لتدوير زاوية المشاهدة بحرية
-    </div>
-
+    <!-- كود الـ Shaders عالي الدقة (Raymarching Gravitational Simulation) -->
     <script>
-        const canvas = document.getElementById('viewport');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.getElementById('glcanvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
-        // أبعاد الشاشة
-        let width, height;
+        if (!gl) {
+            alert('متصفحك لا يدعم WebGL');
+        }
+
+        // Vertex Shader
+        const vsSource = `
+            attribute vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+
+        // Fragment Shader: محاكاة سينمائية لانحناء الضوء وقرص التراكم الدوامي
+        const fsSource = `
+            precision highp float;
+            uniform vec2 u_resolution;
+            uniform float u_time;
+            uniform float u_zoom;
+            uniform vec2 u_rot;
+
+            #define PI 3.14159265359
+
+            // خوارزمية ضوضاء ناعمة لتمثيل دوامات الغاز الساخن
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+            }
+
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+
+            float fbm(vec2 p) {
+                float v = 0.0;
+                float a = 0.5;
+                for (int i = 0; i < 4; i++) {
+                    v += a * noise(p);
+                    p *= 2.05;
+                    a *= 0.5;
+                }
+                return v;
+            }
+
+            void main() {
+                // إحداثيات الشاشة الموحدة
+                vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+                uv *= (2.4 / u_zoom);
+
+                // تطبيق التدوير والتفاعل باللمس
+                float cosY = cos(u_rot.y);
+                float sinY = sin(u_rot.y);
+                uv = vec2(uv.x, uv.y * cosY);
+
+                float r = length(uv);
+                float phi = atan(uv.y, uv.x);
+
+                // نصف قطر أفق الحدث
+                float rh = 0.45;
+
+                // 1. سواد أفق الحدث المطلق
+                if (r < rh) {
+                    // حافة الفوتونات الرفيعة والمتوهجة مباشرة عند الحد
+                    float edge = smoothstep(rh - 0.02, rh, r);
+                    vec3 photonRing = vec3(1.0, 0.9, 0.8) * pow(edge, 16.0) * 2.0;
+                    gl_FragColor = vec4(photonRing, 1.0);
+                    return;
+                }
+
+                // 2. محاكاة عدسة الجاذبية (Gravitational Lensing Deflection)
+                // الضوء ينحني بمقدار نسبي كلما اقترب من أفق الحدث
+                float bend = rh / (r - rh * 0.75);
+                float distortedR = r - 0.12 * bend;
+
+                // 3. محاكاة قرص التراكم العلوي المنحني والقاعدة الأفقية
+                // ندمج تشوهين: الإسقاط الاستوائي والإسقاط المنحني فوق الثقب
+                float diskR = distortedR;
+                float gasDist = abs(diskR - 1.1);
+
+                // سرعة دوران الغاز (تزداد كلما اقتربنا من الثقب - قانون كبلر النسبي)
+                float speed = u_time * 0.8 * (0.6 / max(diskR, 0.2));
+                float spiralAngle = phi - speed;
+
+                // رسم خطوط ونسيج الغاز الملتهب
+                vec2 gasCoord = vec2(diskR * 6.0, spiralAngle * 4.0);
+                float gasPattern = fbm(gasCoord);
+                gasPattern += 0.5 * fbm(gasCoord * 2.5 + vec2(u_time, 0.0));
+
+                // شدة توهج القرص
+                float diskGlow = exp(-gasDist * 3.8) * gasPattern;
+
+                // 4. حلقة الضوء المعكوسة العلوية والسفلية (الضوء المار خلف الثقب)
+                float lensArcDist = abs(r - rh * 1.55);
+                float lensGlow = exp(-lensArcDist * 7.0) * (0.7 + 0.3 * sin(phi * 2.0));
+
+                // 5. تأثير دوبلر النسبي (الجانب الأيسر يدور باتجاهنا فيكون أسطع)
+                float doppler = 1.0 + 0.85 * cos(phi + 0.3);
+
+                // تجميع الإضاءة
+                float totalIntensity = (diskGlow * 2.2 + lensGlow * 1.8) * doppler;
+
+                // تلوين البلازما: تدرج فيزيائي من الأبيض الساخن للبرتقالي فالأحمر
+                vec3 colCore = vec3(1.0, 0.95, 0.85); // قلب شديد السخونة (أبيض مصفر)
+                vec3 colMid  = vec3(1.0, 0.45, 0.05); // غاز متوسط (برتقالي ناري)
+                vec3 colDark = vec3(0.5, 0.08, 0.01); // حواف الغاز الباردة (أحمر داكن)
+
+                vec3 finalColor = mix(colDark, colMid, clamp(totalIntensity * 0.6, 0.0, 1.0));
+                finalColor = mix(finalColor, colCore, clamp(pow(totalIntensity * 0.5, 2.5), 0.0, 1.0));
+
+                // هالة توهج محيطية خفيفة (Bloom)
+                finalColor += colMid * 0.15 * exp(-r * 1.2);
+
+                // حلقة الفوتونات المشعة (Photon Sphere)
+                float photonRing = smoothstep(0.015, 0.0, abs(r - rh * 1.12)) * 2.2 * doppler;
+                finalColor += vec3(1.0, 0.95, 0.9) * photonRing;
+
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        const program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+
+        // إنشاء المربع الكامل للشاشة (Full Screen Quad)
+        const posBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1, -1,  1, -1, -1,  1,
+            -1,  1,  1, -1,  1,  1
+        ]), gl.STATIC_DRAW);
+
+        const aPos = gl.getAttribLocation(program, 'position');
+        const uRes = gl.getUniformLocation(program, 'u_resolution');
+        const uTime = gl.getUniformLocation(program, 'u_time');
+        const uZoom = gl.getUniformLocation(program, 'u_zoom');
+        const uRot = gl.getUniformLocation(program, 'u_rot');
+
+        let zoom = 1.0;
+        let speedMult = 1.0;
+        let rot = [0.0, 0.55]; // ميلان افتراضي يحاكي المشهد الأفقي المائل
+        let isDragging = false;
+        let lastTouch = { x: 0, y: 0 };
+
         function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // متغيرات المحاكاة
-        let zoom = 1.0;
-        let speed = 1.0;
-        let angle = 0;
-        let tilt = 0.55; // زاوية الميل العمودي
-        let mouseX = 0, mouseY = 0;
-        let isDragging = false;
-        let lastMousePos = { x: 0, y: 0 };
-
-        // جسيمات قرص التراكم
-        const NUM_PARTICLES = 1400;
-        const particles = [];
-
-        for (let i = 0; i < NUM_PARTICLES; i++) {
-            particles.push({
-                dist: 90 + Math.random() * 240, // المسافة من المركز
-                theta: Math.random() * Math.PI * 2,
-                size: 0.8 + Math.random() * 2.2,
-                baseSpeed: (Math.random() * 0.015 + 0.01) * (180 / (90 + Math.random() * 240)),
-                brightness: 0.4 + Math.random() * 0.6,
-                hueShift: Math.random() * 25 // تدرج بين البرتقالي والأصفر والأحمر
-            });
-        }
-
-        // نجوم الخلفية
-        const stars = [];
-        for (let i = 0; i < 350; i++) {
-            stars.push({
-                x: Math.random() * 2000 - 1000,
-                y: Math.random() * 2000 - 1000,
-                size: Math.random() * 1.5 + 0.3,
-                baseAlpha: Math.random() * 0.8 + 0.2
-            });
-        }
-
-        // عناصر التحكم في الواجهة
-        const zoomRange = document.getElementById('zoomRange');
-        const zoomVal = document.getElementById('zoomVal');
-        zoomRange.addEventListener('input', (e) => {
-            zoom = parseFloat(e.target.value);
-            zoomVal.textContent = zoom.toFixed(1) + 'x';
-        });
-
-        const speedRange = document.getElementById('speedRange');
-        const speedVal = document.getElementById('speedVal');
-        speedRange.addEventListener('input', (e) => {
-            speed = parseFloat(e.target.value);
-            speedVal.textContent = speed.toFixed(1) + 'x';
-        });
-
-        document.getElementById('btnTiltMid').addEventListener('click', function() {
-            tilt = 0.55;
-            this.classList.add('active');
-            document.getElementById('btnTiltFlat').classList.remove('active');
-        });
-        document.getElementById('btnTiltFlat').addEventListener('click', function() {
-            tilt = 0.15;
-            this.classList.add('active');
-            document.getElementById('btnTiltMid').classList.remove('active');
-        });
-
-        // التفاعل مع السحب بالماوس
-        canvas.addEventListener('mousedown', (e) => {
+        // التفاعل بالسحب واللمس بزاوية ناعمة
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.hud-panel') || e.target.closest('.toggle-hud-btn') || e.target.closest('.info-pop')) return;
             isDragging = true;
-            lastMousePos = { x: e.clientX, y: e.clientY };
-        });
-        window.addEventListener('mouseup', () => isDragging = false);
-        window.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const dx = e.clientX - lastMousePos.x;
-                const dy = e.clientY - lastMousePos.y;
-                tilt = Math.max(0.05, Math.min(0.95, tilt + dy * 0.002));
-                angle += dx * 0.003;
-                lastMousePos = { x: e.clientX, y: e.clientY };
-            }
+            lastTouch = { x: e.clientX, y: e.clientY };
         });
 
-        // التفاعل باللمس للهواتف
-        canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        });
-        window.addEventListener('touchend', () => isDragging = false);
-        window.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length === 1) {
-                const dx = e.touches[0].clientX - lastMousePos.x;
-                const dy = e.touches[0].clientY - lastMousePos.y;
-                tilt = Math.max(0.05, Math.min(0.95, tilt + dy * 0.003));
-                angle += dx * 0.004;
-                lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastTouch.x;
+            const dy = e.clientY - lastTouch.y;
+            rot[1] = Math.max(0.1, Math.min(1.2, rot[1] + dy * 0.004));
+            lastTouch = { x: e.clientX, y: e.clientY };
         });
 
-        // معلومات النقاط العلمية
-        const infoData = {
+        window.addEventListener('pointerup', () => isDragging = false);
+
+        // التحكم
+        document.getElementById('zoom').addEventListener('input', (e) => zoom = parseFloat(e.target.value));
+        document.getElementById('speed').addEventListener('input', (e) => speedMult = parseFloat(e.target.value));
+
+        // زر إخفاء / إظهار الواجهة
+        const hud = document.getElementById('hudPanel');
+        const header = document.getElementById('header');
+        document.getElementById('toggleHud').addEventListener('click', () => {
+            hud.classList.toggle('hidden');
+            header.style.opacity = hud.classList.contains('hidden') ? '0' : '1';
+        });
+
+        // نافذة المعلومات
+        const infoPop = document.getElementById('infoPop');
+        const popTitle = document.getElementById('popTitle');
+        const popDesc = document.getElementById('popDesc');
+        document.getElementById('closePop').addEventListener('click', () => infoPop.classList.remove('active'));
+
+        const infoTexts = {
             horizon: {
                 title: "أفق الحدث (Event Horizon)",
-                desc: "نصف قطر الكرة المظلمة حيث تصبح جاذبية الثقب الأسود مطلقة. أي شيء يتخطى هذا الحد - حتى فوتونات الضوء الأسرع في الكون - يسقط حتماً نحو نقطة التفرد (Singularity) ولا يمكنه الرجوع أبداً."
-            },
-            disk: {
-                title: "قرص التراكم (Accretion Disk)",
-                desc: "دوامة عملاقة من الغاز والغبار الكوني تسقط باتجاه الثقب الأسود بسرعات تقارب سرعة الضوء. يؤدي الاحتكاك والضغط الهائل إلى تسخين المادة لملايين الدرجات المئوية فتتوهج بأشعة سينية وضوء مرئي فائق السطوع."
-            },
-            lensing: {
-                title: "عدسة الجاذبية (Gravitational Lensing)",
-                desc: "بحسب النسبية العامة لآينشتاين، فإن كتلة الثقب الأسود الهائلة تُحنِي نسيج الزمكان ذاته. هذا الانحناء يُجبر مسار أشعة الضوء القادمة من خلف الثقب على الالتفاف حوله، فنرى الجزء الخلفي لقرص التراكم مقوساً فوق الثقب وأسفله في نفس الوقت!"
+                desc: "الحدود الفاصلة التي لا يرجع من ورائها شيء؛ جاذبية هائلة تجعل سرعة الإفلات أعلى من سرعة الضوء نفسه."
             },
             photon: {
-                title: "كرة الفوتونات (Photon Sphere)",
-                desc: "منطقة تقع خارج أفق الحدث بمسافة محددة، تكون الجاذبية فيها قوية لدرجة أن فوتونات الضوء تُجبر على السير في مدارات دائرية كاملة حول الثقب الأسود قبل أن تسقط فيه أو تفلت."
+                title: "حلقة الفوتونات (Photon Ring)",
+                desc: "الحلقة البيضاء المتوهجة الملتصقة بالثقب، ناتجة عن فوتونات ضوئية دارت حول الثقب واستقرت في مدارات حادة قبل الإفلات."
+            },
+            lensing: {
+                title: "القوس الضوئي العلوي (Lensing)",
+                desc: "تأثير نسبي حقيقي؛ الجزء العلوي ليس قرصاً قائماً، بل هو صورة الوجه الخلفي للقرص بعد أن ثنت جاذبية الثقب أشعته نحوك!"
+            },
+            doppler: {
+                title: "تأثير دوبلر النسبي (Doppler)",
+                desc: "لاحظ أن جهة اليسار أشد توهجاً وبياضاً من اليمين، لأن المادة هناك تدور مقتربة من عين الراصد بسرعة تقارب سرعة الضوء."
             }
         };
 
-        const infoCard = document.getElementById('infoCard');
-        const infoTitle = document.getElementById('infoTitle');
-        const infoDesc = document.getElementById('infoDesc');
-        document.getElementById('closeInfo').addEventListener('click', () => {
-            infoCard.classList.remove('visible');
-        });
-
-        function showInfo(type) {
-            const data = infoData[type];
-            if (data) {
-                infoTitle.textContent = data.title;
-                infoDesc.textContent = data.desc;
-                infoCard.classList.add('visible');
-            }
+        function explain(key) {
+            popTitle.textContent = infoTexts[key].title;
+            popDesc.textContent = infoTexts[key].desc;
+            infoPop.classList.add('active');
         }
 
-        // حلقة الرسم والتحديث (Render Loop)
-        function animate() {
-            ctx.fillStyle = '#030508';
-            ctx.fillRect(0, 0, width, height);
+        // حلقة الرسم (Render Loop)
+        let startTime = performance.now();
+        let simTime = 0;
 
-            const cx = width / 2;
-            const cy = height / 2;
-            const bhRadius = 65 * zoom; // نصف قطر أفق الحدث
+        function render(now) {
+            let dt = (now - startTime) * 0.001;
+            startTime = now;
+            simTime += dt * speedMult;
 
-            // 1. رسم نجوم الخلفية مع انحناء خفيف
-            for (let star of stars) {
-                let sx = cx + star.x * zoom;
-                let sy = cy + star.y * zoom;
+            gl.useProgram(program);
 
-                // انكسار بسيط للضوء للنجوم القريبة من الثقب
-                let dx = sx - cx;
-                let dy = sy - cy;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > bhRadius && dist < bhRadius * 4.5) {
-                    let lensFactor = (bhRadius * 15) / dist;
-                    sx += (dx / dist) * lensFactor;
-                    sy += (dy / dist) * lensFactor;
-                }
+            gl.enableVertexAttribArray(aPos);
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-                if (dist > bhRadius * 0.95 && sx > 0 && sx < width && sy > 0 && sy < height) {
-                    ctx.fillStyle = `rgba(255, 255, 255, ${star.baseAlpha})`;
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
+            gl.uniform2f(uRes, canvas.width, canvas.height);
+            gl.uniform1f(uTime, simTime);
+            gl.uniform1f(uZoom, zoom);
+            gl.uniform2f(uRot, rot[0], rot[1]);
 
-            // 2. محاكاة القوس الضوئي العلوي والسفلي (تأثير انحناء الجاذبية - Einstein Ring)
-            let lensingGradient = ctx.createRadialGradient(cx, cy, bhRadius * 0.9, cx, cy, bhRadius * 2.8);
-            lensingGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            lensingGradient.addColorStop(0.35, 'rgba(255, 140, 20, 0.45)');
-            lensingGradient.addColorStop(0.7, 'rgba(255, 70, 0, 0.15)');
-            lensingGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-            ctx.save();
-            ctx.scale(1, tilt * 1.8 + 0.3); // انحناء الضوء يظهر هالة حول الثقب
-            ctx.beginPath();
-            ctx.arc(cx, cy / (tilt * 1.8 + 0.3), bhRadius * 2.2, 0, Math.PI * 2);
-            ctx.fillStyle = lensingGradient;
-            ctx.fill();
-            ctx.restore();
-
-            // 3. رسم جسيمات قرص التراكم
-            // نقسم الجسيمات إلى خلف الثقب وأمامه لتحقيق التجسيم ثلاثي الأبعاد
-            particles.forEach(p => {
-                p.theta += p.baseSpeed * speed;
-            });
-
-            // ترتيب الجسيمات حسب عمق Y لتبدو الأقرب فوق الأبعد
-            const sortedParticles = particles.map(p => {
-                let currentTheta = p.theta + angle;
-                let x = Math.cos(currentTheta) * p.dist * zoom;
-                let y = Math.sin(currentTheta) * p.dist * zoom * tilt;
-                let zDepth = Math.sin(currentTheta); // إذا كان سالباً فهو خلف الثقب
-                return { ...p, x: cx + x, y: cy + y, zDepth, currentTheta };
-            }).sort((a, b) => a.zDepth - b.zDepth);
-
-            // رسم الجسيمات
-            sortedParticles.forEach(p => {
-                let distToCenter = Math.sqrt((p.x - cx)**2 + (p.y - cy)**2);
-                
-                // إخفاء ما يدخل تماماً داخل أفق الحدث
-                if (p.zDepth < 0 && distToCenter < bhRadius * 0.98) return;
-
-                // تأثير دوبلر النسبي (Doppler Beaming): الجانب المتحرك نحونا أسخن وأسطع
-                let doppler = Math.cos(p.currentTheta);
-                let alpha = p.brightness * (0.6 + doppler * 0.4);
-                let r = Math.floor(255);
-                let g = Math.floor(100 + p.hueShift * 4 + doppler * 40);
-                let b = Math.floor(10 + doppler * 60);
-
-                ctx.fillStyle = `rgba(${r}, ${Math.min(255, g)}, ${Math.min(255, b)}, ${alpha})`;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size * zoom, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // 4. رسم ظل أفق الحدث (Shadow of Event Horizon)
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, bhRadius, 0, Math.PI * 2);
-            ctx.fillStyle = '#000000';
-            ctx.fill();
-            // توهج أزرق/أبيض رفيع عند حافة الفوتونات
-            ctx.lineWidth = 2.5 * zoom;
-            ctx.strokeStyle = 'rgba(0, 210, 255, 0.5)';
-            ctx.stroke();
-            ctx.restore();
-
-            requestAnimationFrame(animate);
+            requestAnimationFrame(render);
         }
 
-        animate();
+        requestAnimationFrame(render);
     </script>
 </body>
 </html>
